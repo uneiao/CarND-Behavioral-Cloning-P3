@@ -193,7 +193,7 @@ Then I continuously added data from failing scenes. Especially some curves witho
 
 ![alt text][image3]
 
-After the collection process, I had 4244 number of data points.
+After the collection process, I had 4244 number of data points, 25464 training samples after augmentation.
 I then preprocessed this data by gray scaling, and normalized them into [-0.5, 0.5] using lambda layer.
 I finally randomly shuffled the data set and put 5% of the data into a validation set. 
 
