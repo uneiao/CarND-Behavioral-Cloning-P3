@@ -18,16 +18,12 @@ The goals / steps of this project are the following:
 
 [//]: # (Image References)
 
-[image1]: ./examples/placeholder.png "Model Visualization"
-[image2]: ./examples/placeholder.png "Grayscaling"
-[image3]: ./examples/placeholder_small.png "Recovery Image"
-[image4]: ./examples/placeholder_small.png "Recovery Image"
-[image5]: ./examples/placeholder_small.png "Recovery Image"
-[image6]: ./examples/placeholder_small.png "Normal Image"
-[image7]: ./examples/placeholder_small.png "Flipped Image"
+[image1]: ./images/image1.jpg "Image1"
+[image2]: ./images/image2.jpg "Image2"
+[image3]: ./images/image3.jpg "Image3"
 
 ## Rubric Points
-###Here I will consider the [rubric points](https://review.udacity.com/#!/rubrics/432/view) individually and describe how I addressed each point in my implementation.  
+### Here I will consider the [rubric points](https://review.udacity.com/#!/rubrics/432/view) individually and describe how I addressed each point in my implementation.  
 
 ---
 ### Files Submitted & Code Quality
@@ -50,8 +46,7 @@ python drive.py model.h5
 
 #### 3. Submission code is usable and readable
 
-The model.py file contains the code for training and saving
-the convolution neural network.
+The model.py file contains the code for training and saving the convolution neural network.
 The file shows the pipeline I used for training and validating the model,
 and it contains comments to explain how the code works.
 
@@ -60,89 +55,153 @@ and it contains comments to explain how the code works.
 #### 1. An appropriate model architecture has been employed
 
 My model consists of a convolution neural network with several convolutional layers.
-The model includes RELU layers to introduce nonlinearity,
-and the data is normalized in the model using a Keras lambda layer. 
+The model includes RELU layers to introduce nonlinearity, and the data is normalized in the model using a Keras lambda layer.
+A cropping is used to restrict ROI after the lambda layer.
 
 #### 2. Attempts to reduce overfitting in the model
 
-The model contains dropout layers after each convolutional layer
-in order to reduce overfitting. 
-
-The model was trained and validated on different data sets to ensure
-that the model was not overfitting.
-The model was tested by running it through the simulator
-and ensuring that the vehicle could stay on the track.
+The model contains dropout layers after each convolutional layer in order to reduce overfitting.
+The model was trained and validated on different data sets to ensure that the model was not overfitting.
+The model was tested by running it through the simulator and ensuring that the vehicle could stay on the track.
 
 #### 3. Model parameter tuning
 
 The model used an adam optimizer, so the learning rate was tuned manually as 0.0008,
-a little bit smaller than default value.
+a little bit slower than default value.
 
 #### 4. Appropriate training data
 
-Training data was chosen to keep the vehicle driving on the road.
-I used a combination of center lane driving,
-recovering from the left and right sides of the road ... 
+Training data was collected from training mode of the simulator.
+Firstly I simulated center lane driving, and save one lap data of this behavior.
+Secondly I tried to recover from the left and right sides of the road, wriggling along roads in fact...
+Also one lap for recovering behavior.
 
-For details about how I created the training data, see the next section. 
+Then I began to train the model. The early trained model apparently failed in some scenes,
+so I collected more data around the failing scenes and back to training, again and again.
 
 ### Model Architecture and Training Strategy
 
 #### 1. Solution Design Approach
 
-The overall strategy for deriving a model architecture was to ...
+The overall strategy for deriving a model architecture was to try, one by one.
 
-My first step was to use a convolution neural network model similar to the ...
-I thought this model might be appropriate because ...
+At first I tried LeNet structure, however the training and validation loss converged so quickly,
+that I decided to increase the model capacity. So I changed to the recommended NVIDIA architecture.
 
-//In order to gauge how well the model was working,
-//I split my image and steering angle data into a training and validation set.
-//I found that my first model had a low mean squared error on the training set
-//but a high mean squared error on the validation set.
-//This implied that the model was overfitting. 
+The NVIDIA architecture has deeper structure,
+as a result it took too long to train on my Macbook without a GPU.
+I tried to simplified the model.
+I applied grayscaling pre-process on the input data to have smaller inputs (N x 160 x 320 x 1).
+I reduced one convolutional layer, and tune some parameters a little bit.
+The first convolutional layer down-sampled with a bigger stride(4x4) to save memory.
+In each convolutional layer, a batch normalization layer was added before activations to have faster converging and higher accuracy.
+Along with a dropout layer after activations, in case of over-fitting the training set.
+The new model worked well, it saved 50+% training time each epoch!
 
-To combat the overfitting, I modified the model so that ...
+The data was split into training set and validation set.
+I judged the model by comparing training loss and validation loss,
+to see if the model got over-fitting and how well it worked.
 
-Then I ... 
+My model was trained on first two laps of training data as a cold start.
+I checked the performance of trained models in the autonomous mode simulator each time after the model was trained.
+The model failed several times around some 'curvy' curves.
+Incrementally I collected my behavior data around these failing scenes, including center line driving and recovering.
+My idea was that more training data I added, more details were offered to the model to learn.
+Repeating input images under particular low frequency scenes helped to generalize better.
 
-The final step was to run the simulator to see how well the car was driving
-around track one. There were a few spots where the vehicle fell off the track...
-to improve the driving behavior in these cases, I ....
+It looks like that the keras model.fit method split validation data before it shuffled training data, which means,
+training data was not randomly split into training and validation set.
+Consequently sometimes the validation loss didn't decrease at all no matter how I edited a model.
+Because some hard-case data was appended to the csv file due to my training data collection strategy.
+My solution was to shuffle it using random.shuffle on my own before calling model.fit method.
 
-At the end of the process, the vehicle is able to drive autonomously around
-the track without leaving the road.
+Finally, a well-trained model conquered all the curves in track one. It could drive over and over without leaving the lane.
 
 #### 2. Final Model Architecture
 
-The final model architecture (model.py lines 18-24) consisted of a convolution neural network with the following layers and layer sizes ...
+The final model architecture consisted of four convolutional layers and four fully connected layers.
 
-Here is a visualization of the architecture (note: visualizing the architecture is optional according to the project rubric)
-
-![alt text][image1]
+Here is a visualization of the architecture:
+```
+____________________________________________________________________________________________________
+Layer (type)                     Output Shape          Param #     Connected to                     
+====================================================================================================
+lambda_1 (Lambda)                (None, 160, 320, 1)   0           lambda_input_1[0][0]             
+____________________________________________________________________________________________________
+cropping2d_1 (Cropping2D)        (None, 70, 320, 1)    0           lambda_1[0][0]                   
+____________________________________________________________________________________________________
+convolution2d_1 (Convolution2D)  (None, 17, 79, 18)    468         cropping2d_1[0][0]               
+____________________________________________________________________________________________________
+batchnormalization_1 (BatchNorma (None, 17, 79, 18)    72          convolution2d_1[0][0]            
+____________________________________________________________________________________________________
+activation_1 (Activation)        (None, 17, 79, 18)    0           batchnormalization_1[0][0]       
+____________________________________________________________________________________________________
+dropout_1 (Dropout)              (None, 17, 79, 18)    0           activation_1[0][0]               
+____________________________________________________________________________________________________
+convolution2d_2 (Convolution2D)  (None, 7, 38, 24)     10824       dropout_1[0][0]                  
+____________________________________________________________________________________________________
+batchnormalization_2 (BatchNorma (None, 7, 38, 24)     96          convolution2d_2[0][0]            
+____________________________________________________________________________________________________
+activation_2 (Activation)        (None, 7, 38, 24)     0           batchnormalization_2[0][0]       
+____________________________________________________________________________________________________
+dropout_2 (Dropout)              (None, 7, 38, 24)     0           activation_2[0][0]               
+____________________________________________________________________________________________________
+convolution2d_3 (Convolution2D)  (None, 3, 36, 48)     10416       dropout_2[0][0]                  
+____________________________________________________________________________________________________
+batchnormalization_3 (BatchNorma (None, 3, 36, 48)     192         convolution2d_3[0][0]            
+____________________________________________________________________________________________________
+activation_3 (Activation)        (None, 3, 36, 48)     0           batchnormalization_3[0][0]       
+____________________________________________________________________________________________________
+dropout_3 (Dropout)              (None, 3, 36, 48)     0           activation_3[0][0]               
+____________________________________________________________________________________________________
+convolution2d_4 (Convolution2D)  (None, 1, 34, 64)     27712       dropout_3[0][0]                  
+____________________________________________________________________________________________________
+batchnormalization_4 (BatchNorma (None, 1, 34, 64)     256         convolution2d_4[0][0]            
+____________________________________________________________________________________________________
+activation_4 (Activation)        (None, 1, 34, 64)     0           batchnormalization_4[0][0]       
+____________________________________________________________________________________________________
+dropout_4 (Dropout)              (None, 1, 34, 64)     0           activation_4[0][0]               
+____________________________________________________________________________________________________
+flatten_1 (Flatten)              (None, 2176)          0           dropout_4[0][0]                  
+____________________________________________________________________________________________________
+dense_1 (Dense)                  (None, 128)           278656      flatten_1[0][0]                  
+____________________________________________________________________________________________________
+dense_2 (Dense)                  (None, 32)            4128        dense_1[0][0]                    
+____________________________________________________________________________________________________
+dense_3 (Dense)                  (None, 16)            528         dense_2[0][0]                    
+____________________________________________________________________________________________________
+dense_4 (Dense)                  (None, 1)             17          dense_3[0][0]                    
+====================================================================================================
+Total params: 333,365
+Trainable params: 333,057
+Non-trainable params: 308
+____________________________________________________________________________________________________
+```
 
 #### 3. Creation of the Training Set & Training Process
 
-To capture good driving behavior, I first recorded two laps on track one using center lane driving. Here is an example image of center lane driving:
+To capture good driving behavior, I first recorded two laps on track one using center lane driving.
+
+![alt text][image1]
+
+I then recorded the vehicle recovering from the left side and right sides of the road back to center
+so that the vehicle would learn to recovery from boundaries.
 
 ![alt text][image2]
 
-I then recorded the vehicle recovering from the left side and right sides of the road back to center so that the vehicle would learn to .... These images show what a recovery looks like starting from ... :
+To augment the data sat, I also flipped images and angles thinking that this would make model generalize better,
+for most of curves were only left turns in track one.
+
+Then I continuously added data from failing scenes. Especially some curves without lane line on one side.
 
 ![alt text][image3]
-![alt text][image4]
-![alt text][image5]
 
-To augment the data sat, I also flipped images and angles thinking that this would ... For example, here is an image that has then been flipped:
+After the collection process, I had 4244 number of data points.
+I then preprocessed this data by gray scaling, and normalized them into [-0.5, 0.5] using lambda layer.
+I finally randomly shuffled the data set and put 5% of the data into a validation set. 
 
-![alt text][image6]
-![alt text][image7]
-
-Etc ....
-
-After the collection process, I had X number of data points. I then preprocessed this data by ...
-
-
-I finally randomly shuffled the data set and put Y% of the data into a validation set. 
-
-I used this training data for training the model. The validation set helped determine if the model was over or under fitting. The ideal number of epochs was Z as evidenced by ... I used an adam optimizer so that manually training the learning rate wasn't necessary.
+I used this training data for training the model. 
+The validation set helped determine if the model was over or under fitting.
+The ideal number of epochs was 20 as evidenced by the statistics of the losses.
+I used an adam optimizer, setting 0.0008 as the learning rate.
 
