@@ -17,6 +17,7 @@ The goals / steps of this project are the following:
 [image1]: ./images/image1.jpg "Image1"
 [image2]: ./images/image2.jpg "Image2"
 [image3]: ./images/image3.jpg "Image3"
+[image4]: ./images/figure_1.png "Image4"
 
 ## Rubric Points
 ### Here I will consider the [rubric points](https://review.udacity.com/#!/rubrics/432/view) individually and describe how I addressed each point in my implementation.  
@@ -201,3 +202,4 @@ The validation set helped determine if the model was over or under fitting.
 The ideal number of epochs was 20 as evidenced by the statistics of the losses.
 I used an adam optimizer, setting 0.0008 as the learning rate.
 
+![alt text][image4]
